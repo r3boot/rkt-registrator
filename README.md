@@ -25,7 +25,7 @@ You can add the annotations below to your ACI's to influence the way consul hand
   --- | ---
  consul-port | Port on which the service is listening
  consul-dns | Override DNS hostname
- consul-check-type | Check type (See [Consul Service Definition docs](https://www.consul.io/docs/agent/services.html)
+ consul-check-type | Check type (See [Consul Service Definition docs](https://www.consul.io/docs/agent/services.html))
  consul-check-target | Target of the check
  consul-check-name | Name for the check
  consul-check-interval | Interval of check (defaults to 10s)
