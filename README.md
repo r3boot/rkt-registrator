@@ -20,15 +20,16 @@ rkt-registrator is fully configured from the commandline. See the options below 
 
 ### ACI annotations for consul checks
 You can add the annotations below to your ACI's to influence the way consul handles the service. Note that for now your ACI must atleast have consul-port to be usable with rkt-registrator.
-| Name                  | Description |
-|-----------------------|-------------|
-| consul-port           | Port on which the service is listening |
-| consul-dns            | Override DNS hostname |
-| consul-check-type     | Check type (See [Consul Service Definition docs](https://www.consul.io/docs/agent/services.html) |
-| consul-check-target   | Target of the check |
-| consul-check-name     | Name for the check |
-| consul-check-interval | Interval of check (defaults to 10s) |
-| consul-check-timeout  | Timeout of check (defaults to 1s) |
+
+ Name | Description
+  --- | ---
+ consul-port | Port on which the service is listening
+ consul-dns | Override DNS hostname
+ consul-check-type | Check type (See [Consul Service Definition docs](https://www.consul.io/docs/agent/services.html)
+ consul-check-target | Target of the check
+ consul-check-name | Name for the check
+ consul-check-interval | Interval of check (defaults to 10s)
+ consul-check-timeout | Timeout of check (defaults to 1s)
 
 ### Roadmap
 The current code is not even alpha quality code. Further work include more documentation and building proper releases.
