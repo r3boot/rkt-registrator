@@ -113,7 +113,7 @@ func GetNetworkData(net_dir string) (ipuuids map[string]string, err error) {
 	return
 }
 
-func GetPods(netname *string) (pods map[string]Pod, err error) {
+func GetPods(netname string) (pods map[string]Pod, err error) {
 	var manifest RktManifest
 	var netdata map[string]string
 
@@ -213,12 +213,12 @@ func GetPods(netname *string) (pods map[string]Pod, err error) {
 	}
 
 	// Parse networks for all pods
-	if _, err = os.Stat(Cni_dir + "/networks/" + *netname); err != nil {
+	if _, err = os.Stat(Cni_dir + "/networks/" + netname); err != nil {
 		err = errors.New("GetPods(): Failed to get network data: " + err.Error())
 		return
 	}
 
-	net_dir := Cni_dir + "/networks/" + *netname
+	net_dir := Cni_dir + "/networks/" + netname
 
 	if netdata, err = GetNetworkData(net_dir); err != nil {
 		return

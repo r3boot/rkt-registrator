@@ -1,7 +1,7 @@
 ### Wth is rkt-registrator?
 Rkt-registrator is a bridge between [rkt containers](https://coreos.com/rkt/) and [Consul](https://www.consul.io/). It reads metadata from pods running on a host, and pushes these to consul. Pod metadata is read from the local filesystem, and converted into a json object which is posted to the consul api. Consul checks can be configured on a per-pod basis using annotations added to the ACI (see below).
 
-### rkt-registrator commandline options
+### rkt-registrator configuration options
 rkt-registrator is fully configured from the commandline. See the options below for an overview:
 ```
   -consul-endpoint string
@@ -15,8 +15,18 @@ rkt-registrator is fully configured from the commandline. See the options below 
     	Path to rkt cni directory (default "/var/lib/cni")
   -rkt-data-dir string
     	Path to rkt data directory (default "/var/lib/rkt")
-
 ```
+
+Furthermore, it's possible to define the above options as environment variables. Note that the options specified above take presedence over the environment variables.
+
+ Option | Environment
+  ---   |     ---
+ -consul-endpoint | CONSUL_ENDPOINT
+ -consul-worker | CONSUL_WORKER
+ -d | REGISTRATOR_DEBUG
+ -net | RKT_NET
+ -rkt-cni-dir | RKT_CNI_DIR
+ -rkt-data-dir | RKT_DATA_DIR
 
 ### ACI annotations for consul checks
 You can add the annotations below to your ACI's to influence the way consul handles the service. Note that for now your ACI must atleast have consul-port to be usable with rkt-registrator.

@@ -5,6 +5,7 @@ import (
 	"github.com/r3boot/rkt-registrator/consul"
 	"github.com/r3boot/rkt-registrator/rkt"
 	"github.com/r3boot/rkt-registrator/utils"
+	"os"
 	"reflect"
 	"time"
 )
@@ -15,34 +16,86 @@ const D_RKT_CNI_DIR string = "/var/lib/cni"
 const D_CONSUL_ENDPOINT string = "http://localhost:8500"
 const D_DEBUG bool = false
 
-var rkt_network = flag.String("net", D_RKT_NET, "Publish ip addresses from this network")
-var rkt_data_dir = flag.String("rkt-data-dir", D_RKT_DATA_DIR, "Path to rkt data directory")
-var rkt_cni_dir = flag.String("rkt-cni-dir", D_RKT_CNI_DIR, "Path to rkt cni directory")
-var consul_endpoint = flag.String("consul-endpoint", D_CONSUL_ENDPOINT, "Uri of consul master endpoint")
-var consul_worker = flag.String("consul-worker", "", "Consul node on which we register services")
-var debug = flag.Bool("d", D_DEBUG, "Enable debug output")
+var f_rkt_network = flag.String("net", D_RKT_NET, "Publish ip addresses from this network")
+var f_rkt_data_dir = flag.String("rkt-data-dir", D_RKT_DATA_DIR, "Path to rkt data directory")
+var f_rkt_cni_dir = flag.String("rkt-cni-dir", D_RKT_CNI_DIR, "Path to rkt cni directory")
+var f_consul_endpoint = flag.String("consul-endpoint", D_CONSUL_ENDPOINT, "Uri of consul master endpoint")
+var f_consul_worker = flag.String("consul-worker", "", "Consul node on which we register services")
+var f_debug = flag.Bool("d", D_DEBUG, "Enable debug output")
+
+var rkt_network string
+var rkt_data_dir string
+var rkt_cni_dir string
+var consul_endpoint string
+var consul_worker string
+var debug bool
 
 var Log utils.Log
+
+func parseOptions() {
+	var value string
+	rkt_network = *f_rkt_network
+	if *f_rkt_network == D_RKT_NET {
+		if value = os.Getenv("RKT_NETWORK"); value != "" {
+			rkt_network = value
+		}
+	}
+
+	rkt_data_dir = *f_rkt_data_dir
+	if *f_rkt_data_dir == D_RKT_DATA_DIR {
+		if value = os.Getenv("RKT_DATA_DIR"); value != "" {
+			rkt_data_dir = value
+		}
+	}
+
+	rkt_cni_dir = *f_rkt_cni_dir
+	if *f_rkt_cni_dir == D_RKT_CNI_DIR {
+		if value = os.Getenv("RKT_CNI_DIR"); value != "" {
+			rkt_cni_dir = value
+		}
+	}
+
+	consul_endpoint = *f_consul_endpoint
+	if *f_consul_endpoint == D_CONSUL_ENDPOINT {
+		if value = os.Getenv("CONSUL_ENDPOINT"); value != "" {
+			consul_endpoint = value
+		}
+	}
+
+	consul_worker = *f_consul_worker
+	if *f_consul_worker == "" {
+		if value = os.Getenv("CONSUL_WORKER"); value != "" {
+			rkt_cni_dir = value
+		}
+	}
+	debug = *f_debug
+	if *f_debug == D_DEBUG {
+		if value = os.Getenv("REGISTRATOR_DEBUG"); value != "" {
+			debug = true
+		}
+	}
+
+}
 
 func init() {
 	var err error
 	flag.Parse()
 
-	if *consul_worker == "" {
+	if *f_consul_worker == "" {
 		Log.Fatal("A consul worker to register services on must be specified")
 	}
 
-	Log.UseDebug = *debug
-	Log.UseVerbose = *debug
+	Log.UseDebug = debug
+	Log.UseVerbose = debug
 	Log.UseTimestamp = false
 	Log.Debug("Logging initialized")
 
-	if err = rkt.Setup(Log, *rkt_data_dir, *rkt_cni_dir); err != nil {
+	if err = rkt.Setup(Log, rkt_data_dir, rkt_cni_dir); err != nil {
 		Log.Fatal("Failed to setup rkt parser: " + err.Error())
 	}
 	Log.Debug("rkt parser initialized")
 
-	if err = consul.Setup(Log, *consul_endpoint, *consul_worker); err != nil {
+	if err = consul.Setup(Log, consul_endpoint, consul_worker); err != nil {
 		Log.Fatal("Failed to setup consul agent: " + err.Error())
 	}
 	Log.Debug("consul agent initialized")
@@ -68,11 +121,11 @@ func main() {
 			to_add, to_remove = rkt.DiffPods(cur_pods, prev_pods)
 
 			for _, uuid := range to_add {
-				Log.Debug("Registering " + cur_pods[uuid].Name + " on " + *consul_worker)
+				Log.Debug("Registering " + cur_pods[uuid].Name + " on " + consul_worker)
 				consul.Register(cur_pods[uuid])
 			}
 			for _, uuid := range to_remove {
-				Log.Debug("Deregistering " + cur_pods[uuid].Name + " on " + *consul_worker)
+				Log.Debug("Deregistering " + cur_pods[uuid].Name + " on " + consul_worker)
 				consul.Deregister(prev_pods[uuid])
 			}
 
