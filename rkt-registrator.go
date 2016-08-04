@@ -81,9 +81,7 @@ func init() {
 	var err error
 	flag.Parse()
 
-	if *f_consul_worker == "" {
-		Log.Fatal("A consul worker to register services on must be specified")
-	}
+	parseOptions()
 
 	Log.UseDebug = debug
 	Log.UseVerbose = debug
