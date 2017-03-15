@@ -140,7 +140,10 @@ func main() {
 			prev_pods = cur_pods
 		}
 
-		consul.FlushDuplicates()
+		if err = consul.FlushDuplicates(); err != nil {
+			Log.Fatal(err)
+			os.Exit(1)
+		}
 
 		time.Sleep(1 * time.Second)
 	}
