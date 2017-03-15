@@ -4,10 +4,12 @@ import (
 	"github.com/r3boot/rkt-registrator/utils"
 )
 
-var Log utils.Log
-var Endpoint string
-var Worker string
-var Available bool = false
+var (
+	Log       utils.Log
+	Endpoint  string
+	Worker    string
+	Available bool = false
+)
 
 func Setup(l utils.Log, endpoint string, worker string) (err error) {
 	Log = l

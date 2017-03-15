@@ -9,12 +9,19 @@ import (
 )
 
 func AgentPing() (result bool) {
-	_, err := http.Get(Endpoint + "/v1/catalog/nodes")
+	var (
+		err error
+	)
+
+	_, err = http.Get(Endpoint + "/v1/catalog/nodes")
 	return err == nil
 }
 
 func Pod2Service(pod rkt.Pod) ConsulService {
-	var svc ConsulService
+	var (
+		svc ConsulService
+	)
+
 	svc.Check = make(map[string]string)
 	svc.Tags = make([]string, 0)
 
@@ -33,15 +40,18 @@ func Pod2Service(pod rkt.Pod) ConsulService {
 	svc.Check["Interval"] = pod.Consul.Check.Interval
 	svc.Check["Timeout"] = pod.Consul.Check.Timeout
 
-	Log.Debug(svc)
-
 	return svc
 }
 
 func Register(pod rkt.Pod) (err error) {
-	data := new(bytes.Buffer)
+	var (
+		data    *bytes.Buffer
+		service ConsulService
+	)
 
-	service := Pod2Service(pod)
+	data = new(bytes.Buffer)
+
+	service = Pod2Service(pod)
 
 	if err = json.NewEncoder(data).Encode(service); err != nil {
 		err = errors.New("Register(): Failed to marshal json: " + err.Error())
@@ -57,14 +67,103 @@ func Register(pod rkt.Pod) (err error) {
 	return
 }
 
-func Deregister(pod rkt.Pod) (err error) {
-	service := Pod2Service(pod)
+func DeRegister(pod rkt.Pod) (err error) {
+	var (
+		service ConsulService
+		uri     string
+	)
 
-	uri := Endpoint + "/v1/agent/service/deregister/" + service.ID
+	service = Pod2Service(pod)
+
+	uri = Endpoint + "/v1/agent/service/deregister/" + service.ID
 
 	if _, err = http.Get(uri); err != nil {
-		err = errors.New("Deregister(): Failed to deregister service: " + err.Error())
+		err = errors.New("DeRegister(): Failed to deregister service: " + err.Error())
 		return
+	}
+
+	return
+}
+
+func DeRegisterByID(ID string) (err error) {
+	var (
+		uri string
+	)
+
+	uri = Endpoint + "/v1/agent/service/deregister/" + ID
+
+	if _, err = http.Get(uri); err != nil {
+		err = errors.New("DeRegister(): Failed to deregister service: " + err.Error())
+		return
+	}
+
+	return
+}
+
+func FlushDuplicates() (err error) {
+	var (
+		all_services_uri string
+		allServices      CatalogServices
+		serviceDetails   []CatalogService
+		serviceDetail    CatalogService
+		lastModifiedID   string
+		lastModified     int
+		idToRemove       []string
+		ID               string
+		service          string
+		service_uri      string
+		uri              string
+		response         *http.Response
+	)
+
+	all_services_uri = Endpoint + "/v1/catalog/services"
+	service_uri = Endpoint + "/v1/catalog/service/"
+
+	response, err = http.Get(all_services_uri)
+	if err != nil {
+		err = errors.New("FlushDuplicates(): Failed to list services: " + err.Error())
+		return
+	}
+	defer response.Body.Close()
+
+	if err = json.NewDecoder(response.Body).Decode(allServices); err != nil {
+		err = errors.New("FlushDuplicates(): Failed to decode json: " + err.Error())
+		return
+	}
+
+	for service, _ = range allServices {
+		uri = service_uri + "/" + service
+
+		if response, err = http.Get(uri); err != nil {
+			err = errors.New("FlushDuplicates(): Failed to fetch details for service")
+			return
+		}
+		defer response.Body.Close()
+
+		if err = json.NewDecoder(response.Body).Decode(serviceDetails); err != nil {
+			err = errors.New("FlushDuplicates(): Failed to decode json for service: " + err.Error())
+			return
+		}
+
+		lastModified = 0
+		lastModifiedID = ""
+		idToRemove = make([]string, 100)
+		for _, serviceDetail = range serviceDetails {
+			if serviceDetail.ModifyIndex > lastModified {
+				if lastModifiedID != "" {
+					idToRemove = append(idToRemove, lastModifiedID)
+				}
+				lastModified = serviceDetail.ModifyIndex
+				lastModifiedID = serviceDetail.ID
+			} else {
+				idToRemove = append(idToRemove, serviceDetail.ID)
+			}
+		}
+
+		for _, ID = range idToRemove {
+			DeRegisterByID(ID)
+		}
+
 	}
 
 	return

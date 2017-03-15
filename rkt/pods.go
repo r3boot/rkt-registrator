@@ -9,19 +9,24 @@ import (
 	"strings"
 )
 
-const D_CONSUL_CHECK_INTERVAL = "10s"
-const D_CONSUL_CHECK_TIMEOUT = "1s"
+const (
+	D_CONSUL_CHECK_INTERVAL = "10s"
+	D_CONSUL_CHECK_TIMEOUT  = "1s"
+)
 
 func GetPodManifest(uuid string) (name string, manifest RktManifest, err error) {
-	var pod_dir string
-	var manifest_path string
-	var fs os.FileInfo
-	var fd *os.File
-	var data []byte
+	var (
+		pod_dir      string
+		manifestPath string
+		fs           os.FileInfo
+		fd           *os.File
+		data         []byte
+		apps         []os.FileInfo
+	)
 
 	pod_dir = Rkt_dir + "/pods/run/" + uuid
 
-	apps, err := ioutil.ReadDir(pod_dir + "/appsinfo")
+	apps, err = ioutil.ReadDir(pod_dir + "/appsinfo")
 	if err != nil {
 		err = errors.New("GetPodManifest(): Failed to get apps: " + err.Error())
 		return
@@ -33,16 +38,16 @@ func GetPodManifest(uuid string) (name string, manifest RktManifest, err error) 
 
 	name = apps[0].Name()
 
-	manifest_path = pod_dir + "/appsinfo/" + name + "/manifest"
+	manifestPath = pod_dir + "/appsinfo/" + name + "/manifest"
 
-	fs, err = os.Stat(manifest_path)
+	fs, err = os.Stat(manifestPath)
 	if err != nil {
 		err = errors.New("GetPodManifest(): Manifest file not found: " + err.Error())
 		return
 	}
 
 	data = make([]byte, fs.Size())
-	if fd, err = os.Open(manifest_path); err != nil {
+	if fd, err = os.Open(manifestPath); err != nil {
 		err = errors.New("GetPodManifest(): Failed to open manifest file: " + err.Error())
 		return
 	}
@@ -61,18 +66,20 @@ func GetPodManifest(uuid string) (name string, manifest RktManifest, err error) 
 	return
 }
 
-func GetIpUuid(ip_file string) (uuid string, err error) {
-	var fs os.FileInfo
-	var fd *os.File
-	var data []byte
+func GetIpUuid(ipFile string) (uuid string, err error) {
+	var (
+		fs   os.FileInfo
+		fd   *os.File
+		data []byte
+	)
 
-	if fs, err = os.Stat(ip_file); err != nil {
+	if fs, err = os.Stat(ipFile); err != nil {
 		err = errors.New("GetIpUuid(): Failed to stat ip file: " + err.Error())
 		return
 	}
 
 	data = make([]byte, fs.Size())
-	if fd, err = os.Open(ip_file); err != nil {
+	if fd, err = os.Open(ipFile); err != nil {
 		err = errors.New("GetIpUuid(): Failed to open ip file: " + err.Error())
 		return
 	}
@@ -88,34 +95,41 @@ func GetIpUuid(ip_file string) (uuid string, err error) {
 	return
 }
 
-func GetNetworkData(net_dir string) (ipuuids map[string]string, err error) {
-	var ip string
-	var uuid string
+func GetNetworkData(netDir string) (ipUuids map[string]string, err error) {
+	var (
+		ip     string
+		uuid   string
+		ips    []os.FileInfo
+		ipAddr os.FileInfo
+		ipFile string
+	)
 
-	ipuuids = make(map[string]string)
+	ipUuids = make(map[string]string)
 
-	// this function assumes that net_dir exists
-	ips, err := ioutil.ReadDir(net_dir)
+	// this function assumes that netDir exists
+	ips, err = ioutil.ReadDir(netDir)
 	if err != nil {
 		err = errors.New("GetNetworkData(): Failed to read list of ips: " + err.Error())
 		return
 	}
 
-	for _, ipaddr := range ips {
-		ip = ipaddr.Name()
-		ip_file := net_dir + "/" + ip
-		if uuid, err = GetIpUuid(ip_file); err != nil {
+	for _, ipAddr = range ips {
+		ip = ipAddr.Name()
+		ipFile = netDir + "/" + ip
+		if uuid, err = GetIpUuid(ipFile); err != nil {
 			return
 		}
-		ipuuids[uuid] = ip
+		ipUuids[uuid] = ip
 	}
 
 	return
 }
 
-func GetPods(netname string) (pods map[string]Pod, err error) {
-	var manifest RktManifest
-	var netdata map[string]string
+func GetPods(netName string) (pods map[string]Pod, err error) {
+	var (
+		manifest RktManifest
+		netData  map[string]string
+	)
 
 	pods = make(map[string]Pod)
 
@@ -213,23 +227,23 @@ func GetPods(netname string) (pods map[string]Pod, err error) {
 	}
 
 	// Parse networks for all pods
-	if _, err = os.Stat(Cni_dir + "/networks/" + netname); err != nil {
+	if _, err = os.Stat(Cni_dir + "/networks/" + netName); err != nil {
 		err = errors.New("GetPods(): Failed to get network data: " + err.Error())
 		return
 	}
 
-	net_dir := Cni_dir + "/networks/" + netname
+	netDir := Cni_dir + "/networks/" + netName
 
-	if netdata, err = GetNetworkData(net_dir); err != nil {
+	if netData, err = GetNetworkData(netDir); err != nil {
 		return
 	}
 
 	for _, pod := range pods {
-		for net_uuid := range netdata {
+		for net_uuid := range netData {
 			if net_uuid != pod.Uuid {
 				continue
 			}
-			pod.IpAddress = netdata[pod.Uuid]
+			pod.IpAddress = netData[pod.Uuid]
 			pods[pod.Uuid] = pod
 			break
 		}

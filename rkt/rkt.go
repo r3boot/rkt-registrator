@@ -5,9 +5,11 @@ import (
 	"os"
 )
 
-var Log utils.Log
-var Rkt_dir string
-var Cni_dir string
+var (
+	Log     utils.Log
+	Rkt_dir string
+	Cni_dir string
+)
 
 func Setup(l utils.Log, rkt_dir string, cni_dir string) (err error) {
 	Log = l

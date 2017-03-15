@@ -10,30 +10,35 @@ import (
 	"time"
 )
 
-const D_RKT_NET string = "default-restricted"
-const D_RKT_DATA_DIR string = "/var/lib/rkt"
-const D_RKT_CNI_DIR string = "/var/lib/cni"
-const D_CONSUL_ENDPOINT string = "http://localhost:8500"
-const D_DEBUG bool = false
+const (
+	D_RKT_NET         string = "default-restricted"
+	D_RKT_DATA_DIR    string = "/var/lib/rkt"
+	D_RKT_CNI_DIR     string = "/var/lib/cni"
+	D_CONSUL_ENDPOINT string = "http://localhost:8500"
+	D_DEBUG           bool   = false
+)
 
-var f_rkt_network = flag.String("net", D_RKT_NET, "Publish ip addresses from this network")
-var f_rkt_data_dir = flag.String("rkt-data-dir", D_RKT_DATA_DIR, "Path to rkt data directory")
-var f_rkt_cni_dir = flag.String("rkt-cni-dir", D_RKT_CNI_DIR, "Path to rkt cni directory")
-var f_consul_endpoint = flag.String("consul-endpoint", D_CONSUL_ENDPOINT, "Uri of consul master endpoint")
-var f_consul_worker = flag.String("consul-worker", "", "Consul node on which we register services")
-var f_debug = flag.Bool("d", D_DEBUG, "Enable debug output")
-
-var rkt_network string
-var rkt_data_dir string
-var rkt_cni_dir string
-var consul_endpoint string
-var consul_worker string
-var debug bool
-
-var Log utils.Log
+var (
+	f_rkt_network     = flag.String("net", D_RKT_NET, "Publish ip addresses from this network")
+	f_rkt_data_dir    = flag.String("rkt-data-dir", D_RKT_DATA_DIR, "Path to rkt data directory")
+	f_rkt_cni_dir     = flag.String("rkt-cni-dir", D_RKT_CNI_DIR, "Path to rkt cni directory")
+	f_consul_endpoint = flag.String("consul-endpoint", D_CONSUL_ENDPOINT, "Uri of consul master endpoint")
+	f_consul_worker   = flag.String("consul-worker", "", "Consul node on which we register services")
+	f_debug           = flag.Bool("d", D_DEBUG, "Enable debug output")
+	rkt_network       string
+	rkt_data_dir      string
+	rkt_cni_dir       string
+	consul_endpoint   string
+	consul_worker     string
+	debug             bool
+	Log               utils.Log
+)
 
 func parseOptions() {
-	var value string
+	var (
+		value string
+	)
+
 	rkt_network = *f_rkt_network
 	if *f_rkt_network == D_RKT_NET {
 		if value = os.Getenv("RKT_NETWORK"); value != "" {
@@ -78,7 +83,10 @@ func parseOptions() {
 }
 
 func init() {
-	var err error
+	var (
+		err error
+	)
+
 	flag.Parse()
 
 	parseOptions()
@@ -101,11 +109,13 @@ func init() {
 }
 
 func main() {
-	var err error
-	var cur_pods map[string]rkt.Pod
-	var prev_pods map[string]rkt.Pod
-	var to_add []string
-	var to_remove []string
+	var (
+		err       error
+		cur_pods  map[string]rkt.Pod
+		prev_pods map[string]rkt.Pod
+		to_add    []string
+		to_remove []string
+	)
 
 	cur_pods = make(map[string]rkt.Pod)
 	prev_pods = make(map[string]rkt.Pod)
@@ -124,11 +134,13 @@ func main() {
 			}
 			for _, uuid := range to_remove {
 				Log.Debug("Deregistering " + cur_pods[uuid].Name + " on " + consul_worker)
-				consul.Deregister(prev_pods[uuid])
+				consul.DeRegister(prev_pods[uuid])
 			}
 
 			prev_pods = cur_pods
 		}
+
+		consul.FlushDuplicates()
 
 		time.Sleep(1 * time.Second)
 	}
